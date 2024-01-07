@@ -11,25 +11,21 @@ function HashMap(capacity) {
   let size = 0;
 
   const set = (key, value) => {
-    const index = hash(key);
-
-    if (isOutOfBounds(index)) {
-      throw new Error("Trying to access index out of bound");
-    }
+    if (hasHighLoadFactor()) resize();
 
     const found = getWithCallback(key, (node) => {
       node.value = value;
       return true;
     });
+    if (found) return;
 
-    if (!found) {
-      (buckets[index] ??= []).push(Node(key, value));
-      size += 1;
-    }
+    const index = hash(key);
 
-    if (hasHighLoadFactor()) {
-      resize();
-    }
+    if (isOutOfBounds(index))
+      throw new Error("Trying to access index out of bound");
+
+    (buckets[index] ??= []).push(Node(key, value));
+    size += 1;
   };
 
   const get = (key) => getWithCallback(key, (node) => node.value);
@@ -71,9 +67,8 @@ function HashMap(capacity) {
   const getBucketOfKey = (key) => {
     const index = hash(key);
 
-    if (isOutOfBounds(index)) {
+    if (isOutOfBounds(index))
       throw new Error("Trying to access index out of bound");
-    }
 
     return buckets[index];
   };
