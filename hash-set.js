@@ -1,8 +1,4 @@
-function Node(key) {
-  return {
-    key,
-  };
-}
+const { LinkedList, Node } = require("./linked-list");
 
 function HashSet(capacity) {
   const LOAD_FACTOR = 0.75;
@@ -13,12 +9,10 @@ function HashSet(capacity) {
     if (hasHighLoadFactor()) resize();
     if (has(key)) return;
 
-    const index = hash(key);
+    const index = getIndexOfKey(key);
 
-    if (isOutOfBounds(index))
-      throw new Error("Trying to access index out of bound");
-
-    (buckets[index] ??= []).push(Node(key));
+    buckets[index] ??= LinkedList();
+    buckets[index].append(Node(key, null));
     size += 1;
   };
 
@@ -26,49 +20,59 @@ function HashSet(capacity) {
 
   const remove = (key) =>
     getWithCallback(key, (_, i, bucket) => {
-      bucket.splice(i, 1);
+      bucket.remove(i);
       size -= 1;
+      return true;
     });
 
   const clear = () => {
-    buckets = Array(buckets.length);
+    buckets = Array(capacity);
     size = 0;
   };
 
-  const keys = () => flatten().map((node) => node.key);
+  const keys = () => collect((node) => node.key);
 
   const getWithCallback = (key, callback) => {
     const bucket = getBucketOfKey(key);
 
     if (!bucket) return null;
 
-    for (let i = 0; i < bucket.length; ++i) {
-      const node = bucket[i];
-      if (node.key === key) {
-        return callback(node, i, bucket);
-      }
-    }
+    const node = bucket.search((currentNode, index) => {
+      if (currentNode.key === key) return callback(currentNode, index, bucket);
+    });
 
-    return null;
+    return node;
   };
 
-  const getBucketOfKey = (key) => {
+  const getBucketOfKey = (key) => buckets[getIndexOfKey(key)];
+
+  const getIndexOfKey = (key) => {
     const index = hash(key);
 
     if (isOutOfBounds(index))
       throw new Error("Trying to access index out of bound");
 
-    return buckets[index];
+    return index;
   };
 
   const resize = () => {
     const oldBuckets = buckets;
     buckets = Array(buckets.length * 2);
+    size = 0;
 
-    oldBuckets.forEach((bucket) => bucket?.forEach((node) => add(node.key)));
+    oldBuckets.forEach((bucket) => bucket?.search((node) => add(node.key)));
   };
 
-  const flatten = () => buckets.flat(2).filter(Boolean);
+  const collect = (callback) => {
+    const result = [];
+    buckets.forEach((bucket) =>
+      bucket?.search((currentNode) => {
+        if (currentNode.key) result.push(callback(currentNode));
+      }),
+    );
+
+    return result;
+  };
 
   const isOutOfBounds = (index) => index < 0 || index >= buckets.length;
   const hasHighLoadFactor = () => size / buckets.length > LOAD_FACTOR;
@@ -92,10 +96,7 @@ function HashSet(capacity) {
     clear,
     keys,
     get length() {
-      return buckets.reduce(
-        (count, bucket) => count + (bucket?.length ?? 0),
-        0,
-      );
+      return size;
     },
   });
 }
