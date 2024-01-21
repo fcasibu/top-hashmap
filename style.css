@@ -37,17 +37,6 @@ line {
   stroke-width: 10;
 }
 
-.item {
-  padding: 5px;
-  margin: 2px;
-  background-color: #f0f0f0;
-  border: 1px solid #ddd;
-  border-radius: 3px;
-  display: inline-block;
-  margin-right: 10px;
-  transition: background-color 0.3s;
-}
-
 .tooltip {
   position: absolute;
   padding: 4px;

@@ -80,13 +80,11 @@ function HashMap(capacity) {
   function resize() {
     const oldBuckets = _buckets;
     _buckets = Array.from({ length: _buckets.length * 2 }, () => LinkedList());
-    const oldSize = size;
     size = 0;
 
     oldBuckets.forEach((bucket) =>
       bucket?.search((node) => set(node.key, node.value)),
     );
-    size = oldSize;
   }
 
   function collect(callback) {

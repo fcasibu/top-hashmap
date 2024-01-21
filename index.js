@@ -26,6 +26,14 @@ function Visualization(hashmap, containerSelector) {
       .attr("x", 0)
       .attr("y", bucketYPosition);
 
+    svg
+      .append("text")
+      .attr("x", bucketWidth / 2)
+      .attr("y", bucketYPosition + bucketHeight / 2)
+      .attr("dominant-baseline", "middle")
+      .attr("text-anchor", "middle")
+      .text(index);
+
     svg.attr("height", bucketYPosition + bucketHeight);
     renderNodes(bucket, index);
   }
@@ -76,6 +84,8 @@ function Visualization(hashmap, containerSelector) {
       clearTimeout(timeout);
       tooltip.remove();
     });
+
+    timeouts.clear();
 
     svg.selectAll("*").remove();
     renderHashmap();
