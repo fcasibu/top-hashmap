@@ -1,106 +1,133 @@
-const { LinkedList, Node } = require("./linked-list");
-
 function HashMap(capacity) {
   const LOAD_FACTOR = 0.75;
-  let buckets = Array(capacity);
+  let _buckets = Array.from({ length: capacity }, () => LinkedList());
   let size = 0;
 
-  const set = (key, value) => {
-    if (hasHighLoadFactor()) resize();
+  function set(key, value) {
+    const node = getWithCallback(key);
 
-    const found = getWithCallback(key, (node) => {
+    if (node) {
       node.value = value;
-      return true;
-    });
-
-    if (found) return;
+      return;
+    }
 
     const index = getIndexOfKey(key);
 
-    buckets[index] ??= LinkedList();
-    buckets[index].append(Node(key, value));
+    _buckets[index].append(Node(key, value));
     size += 1;
-  };
 
-  const get = (key) => getWithCallback(key, () => true)?.value ?? null;
-  const has = (key) => Boolean(get(key));
+    if (hasHighLoadFactor()) resize();
+  }
 
-  const remove = (key) =>
-    getWithCallback(key, (_, i, bucket) => {
+  function get(key) {
+    return getWithCallback(key);
+  }
+
+  function has(key) {
+    return Boolean(getWithCallback(key));
+  }
+
+  function remove(key) {
+    return getWithCallback(key, (_, i, bucket) => {
       bucket.remove(i);
       size -= 1;
       return true;
     });
+  }
 
-  const clear = () => {
-    buckets = Array(capacity);
+  function clear() {
+    _buckets = Array.from({ length: capacity }, () => LinkedList());
     size = 0;
-  };
+  }
 
-  const keys = () => collect((node) => node.key);
-  const values = () => collect((node) => node.value);
-  const entries = () => collect((node) => [node.key, node.value]);
+  function keys() {
+    return collect((node) => node.key);
+  }
 
-  const getWithCallback = (key, callback) => {
+  function values() {
+    return collect((node) => node.value);
+  }
+
+  function entries() {
+    return collect((node) => [node.key, node.value]);
+  }
+
+  function getWithCallback(key, callback = () => true) {
     const bucket = getBucketOfKey(key);
 
     if (!bucket) return null;
 
-    const node = bucket.search((currentNode, index) => {
-      if (currentNode.key === key) return callback(currentNode, index, bucket);
-    });
+    const node = bucket.search((currentNode, index) =>
+      currentNode.key === key ? callback(currentNode, index, bucket) : null,
+    );
 
     return node;
-  };
+  }
 
-  const getBucketOfKey = (key) => buckets[getIndexOfKey(key)];
+  function getBucketOfKey(key) {
+    return _buckets[getIndexOfKey(key)];
+  }
 
-  const getIndexOfKey = (key) => {
+  function getIndexOfKey(key) {
     const index = hash(key);
 
     if (isOutOfBounds(index))
       throw new Error("Trying to access index out of bound");
 
     return index;
-  };
+  }
 
-  const resize = () => {
-    const oldBuckets = buckets;
-    buckets = Array(buckets.length * 2);
+  function resize() {
+    const oldBuckets = _buckets;
+    _buckets = Array.from({ length: _buckets.length * 2 }, () => LinkedList());
+    const oldSize = size;
     size = 0;
 
     oldBuckets.forEach((bucket) =>
       bucket?.search((node) => set(node.key, node.value)),
     );
-  };
+    size = oldSize;
+  }
 
-  const collect = (callback) => {
+  function collect(callback) {
     const result = [];
-    buckets.forEach((bucket) =>
+    _buckets.forEach((bucket) =>
       bucket?.search((currentNode) => {
         if (currentNode.key) result.push(callback(currentNode));
       }),
     );
 
     return result;
-  };
+  }
 
-  const isOutOfBounds = (index) => index < 0 || index >= buckets.length;
-  const hasHighLoadFactor = () => size / buckets.length > LOAD_FACTOR;
+  function isOutOfBounds(index) {
+    return index < 0 || index >= _buckets.length;
+  }
 
-  const hash = (key) => {
+  function hasHighLoadFactor() {
+    return size / _buckets.length > LOAD_FACTOR;
+  }
+
+  // https://theartincode.stanis.me/008-djb2/
+  function hash(key) {
     const stringKey = String(key);
-    const primeNumber = 31;
+    let hash = 5381;
 
-    let hashCode = 0;
     for (const char of stringKey) {
-      hashCode += hashCode * primeNumber + char.charCodeAt();
+      hash = (hash * 33) ^ char.charCodeAt(); // https://gist.github.com/eplawless/52813b1d8ad9af510d85?permalink_comment_id=3367765#gistcomment-3367765
     }
 
-    return hashCode % buckets.length;
-  };
+    return Math.abs(hash) % _buckets.length;
+  }
 
   return Object.freeze({
+    get length() {
+      return size;
+    },
+    get buckets() {
+      return _buckets;
+    },
+    getIndexOfKey,
     set,
     get,
     has,
@@ -109,32 +136,5 @@ function HashMap(capacity) {
     keys,
     values,
     entries,
-
-    get length() {
-      return size;
-    },
   });
 }
-
-const map = HashMap(10);
-
-Array.from({ length: 100 }, (_, i) => {
-  map.set("key" + i, i);
-});
-
-console.log(map.get("key54")); // 54
-console.log(map.get("key99")); // 99
-map.remove("key99");
-console.log(map.has("key99")); // false
-console.log(map.values());
-console.log(map.keys());
-console.log(map.entries());
-console.log(map.length);
-map.clear();
-console.log(map.values());
-console.log(map.keys());
-console.log(map.entries());
-console.log(map.get("Hey"));
-console.log(map.length);
-map.set("Hey", "Hey");
-console.log(map.length);

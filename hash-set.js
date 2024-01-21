@@ -5,8 +5,7 @@ function HashSet(capacity) {
   let buckets = Array(capacity);
   let size = 0;
 
-  const add = (key) => {
-    if (hasHighLoadFactor()) resize();
+  function add(key) {
     if (has(key)) return;
 
     const index = getIndexOfKey(key);
@@ -14,56 +13,65 @@ function HashSet(capacity) {
     buckets[index] ??= LinkedList();
     buckets[index].append(Node(key, null));
     size += 1;
-  };
 
-  const has = (key) => Boolean(getWithCallback(key, () => true));
+    if (hasHighLoadFactor()) resize();
+  }
 
-  const remove = (key) =>
-    getWithCallback(key, (_, i, bucket) => {
+  function has(key) {
+    return Boolean(getWithCallback(key));
+  }
+
+  function remove(key) {
+    return getWithCallback(key, (_, i, bucket) => {
       bucket.remove(i);
       size -= 1;
       return true;
     });
+  }
 
-  const clear = () => {
+  function clear() {
     buckets = Array(capacity);
     size = 0;
-  };
+  }
 
-  const keys = () => collect((node) => node.key);
+  function keys() {
+    return collect((node) => node.key);
+  }
 
-  const getWithCallback = (key, callback) => {
+  function getWithCallback(key, callback = () => true) {
     const bucket = getBucketOfKey(key);
 
     if (!bucket) return null;
 
-    const node = bucket.search((currentNode, index) => {
-      if (currentNode.key === key) return callback(currentNode, index, bucket);
-    });
+    const node = bucket.seacrh((currentNode, index) =>
+      currentNode.key === key ? callback(currentNode, index, bucket) : null,
+    );
 
     return node;
-  };
+  }
 
-  const getBucketOfKey = (key) => buckets[getIndexOfKey(key)];
+  function getBucketOfKey(key) {
+    return buckets[getIndexOfKey(key)];
+  }
 
-  const getIndexOfKey = (key) => {
+  function getIndexOfKey(key) {
     const index = hash(key);
 
     if (isOutOfBounds(index))
       throw new Error("Trying to access index out of bound");
 
     return index;
-  };
+  }
 
-  const resize = () => {
+  function resize() {
     const oldBuckets = buckets;
     buckets = Array(buckets.length * 2);
     size = 0;
 
     oldBuckets.forEach((bucket) => bucket?.search((node) => add(node.key)));
-  };
+  }
 
-  const collect = (callback) => {
+  function collect(callback) {
     const result = [];
     buckets.forEach((bucket) =>
       bucket?.search((currentNode) => {
@@ -72,32 +80,36 @@ function HashSet(capacity) {
     );
 
     return result;
-  };
+  }
 
-  const isOutOfBounds = (index) => index < 0 || index >= buckets.length;
-  const hasHighLoadFactor = () => size / buckets.length > LOAD_FACTOR;
+  function isOutOfBounds(index) {
+    return index < 0 || index >= buckets.length;
+  }
 
-  const hash = (key) => {
+  function hasHighLoadFactor() {
+    return size / buckets.length > LOAD_FACTOR;
+  }
+
+  function hash(key) {
     const stringKey = String(key);
-    const primeNumber = 31;
+    let hash = 5381;
 
-    let hashCode = 0;
     for (const char of stringKey) {
-      hashCode += hashCode * primeNumber + char.charCodeAt();
+      hash = (hash * 33) ^ char.charCodeAt(); // https://gist.github.com/eplawless/52813b1d8ad9af510d85?permalink_comment_id=3367765#gistcomment-3367765
     }
 
-    return hashCode % buckets.length;
-  };
+    return Math.abs(hash) % buckets.length;
+  }
 
   return Object.freeze({
+    get length() {
+      return size;
+    },
     add,
     has,
     remove,
     clear,
     keys,
-    get length() {
-      return size;
-    },
   });
 }
 

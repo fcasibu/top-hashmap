@@ -1,11 +1,13 @@
-const Node = (key, value) => ({ key, value, nextNode: null });
+function Node(key, value) {
+  return { key, value, nextNode: null };
+}
 
 function LinkedList() {
   let head = null,
     tail = null,
     _size = 0;
 
-  const append = (node) => {
+  function append(node) {
     if (!head) {
       head = node;
       tail = node;
@@ -14,9 +16,9 @@ function LinkedList() {
       tail = node;
     }
     _size += 1;
-  };
+  }
 
-  const remove = (index) => {
+  function remove(index) {
     if (isOutOfBounds(index)) return;
 
     if (index === 0) {
@@ -37,24 +39,23 @@ function LinkedList() {
     }
 
     _size -= 1;
-  };
+  }
 
-  const search = (callback) => {
+  function search(callback) {
     let counter = 0;
     let current = head;
 
     while (current) {
-      const result = callback(current, counter);
-      if (result) return current;
+      if (callback(current, counter)) return current;
 
       current = current.nextNode;
       counter += 1;
     }
 
     return null;
-  };
+  }
 
-  const getNodeAt = (index) => {
+  function getNodeAt(index) {
     if (isOutOfBounds(index)) return;
 
     let current = head;
@@ -64,21 +65,18 @@ function LinkedList() {
       counter += 1;
     }
     return current;
-  };
+  }
 
-  const isOutOfBounds = (index) => index < 0 || index >= _size;
+  function isOutOfBounds(index) {
+    return index < 0 || index >= _size;
+  }
 
   return Object.freeze({
     get size() {
       return _size;
     },
+    search,
     append,
     remove,
-    search,
   });
 }
-
-module.exports = {
-  LinkedList,
-  Node,
-};
